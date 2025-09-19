@@ -57,7 +57,7 @@ class PacketSf(enum.Enum):
 
 
 class Packet:
-    def __init__(self, time, sf, source, size, destination=0):
+    def __init__(self, time, sf, source, size, tx_power_dbm, destination=0):
         self.time = time
         self.sf = sf
         self.source = source
@@ -66,7 +66,7 @@ class Packet:
         self.size = size
         self.duration = Packet.calculate_transmission_duration(sf, size)
         self.bandwidth = 125  # TODO
-        self.tx_power_dbm = 14  # dBm TODO
+        self.tx_power_dbm = tx_power_dbm  # dBm TODO
         self.tx_energy_j = Packet.calculate_energy(power_dbm=self.tx_power_dbm, duration=self.duration)
 
     def __lt__(self, other):

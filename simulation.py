@@ -60,7 +60,8 @@ class SimulationResult:
 
 
 class Simulation:
-    def __init__(self, topology, packet_rate, packet_size, simulation_duration, sf, sfPredictor=None):
+    def __init__(self, topology, packet_rate, packet_size, simulation_duration, sf, sfPredictor=None,
+                 l_tx_power=14, h_tx_power=14):
         assert 0.0001 <= packet_rate <= 10, 'unsupported packet rate {}'.format(packet_rate)
         assert 51 <= packet_size <= 222, 'unsupported packet size {}'.format(packet_size)
         assert 10 <= simulation_duration <= 100000, 'unsupported simulation duration {}'.format(simulation_duration)
@@ -69,6 +70,8 @@ class Simulation:
         self.topology = topology
         self.packetRate = packet_rate
         self.packetSize = packet_size
+        self.l_tx_power = l_tx_power
+        self.h_tx_power = h_tx_power
         self.simulationDuration = simulation_duration
         self.simulationResult = SimulationResult()
         self.sf = sf
@@ -105,27 +108,34 @@ class Simulation:
 
     def write_to_file(self, file_name):
         with open(file_name, 'w') as file:
-            file.write('Parameters:\n')
-            file.write('Topology radius: {} meters\n'.format(self.topology.radius))
-            file.write('Number of gateways: {}\n'.format(len(self.topology.gateway_list)))
-            file.write('Number of nodes: {}\n'.format(len(self.topology.node_list)))
-            file.write('SF assignment method: {}\n'.format(self.sf))
-            file.write('Simulation duration: {} seconds\n'.format(self.simulationDuration))
-            file.write('Packet rate: {} packet per second\n'.format(self.packetRate))
-            file.write('Packet size: {} bytes\n'.format(self.packetSize))
+            # file.write('Parameters:\n')
+            # file.write('Topology radius: {} meters\n'.format(self.topology.radius))
+            # file.write('Number of gateways: {}\n'.format(len(self.topology.gateway_list)))
+            # file.write('Number of nodes: {}\n'.format(len(self.topology.node_list)))
+            # file.write('SF assignment method: {}\n'.format(self.sf))
+            # file.write('Simulation duration: {} seconds\n'.format(self.simulationDuration))
+            # file.write('Packet rate: {} packet per second\n'.format(self.packetRate))
+            # file.write('Packet size: {} bytes\n'.format(self.packetSize))
+            #
+            # file.write('\nNodes:\n')
+            # for gateway in self.topology.gateway_list:
+            #     file.write('{}\n'.format(gateway))
+            # for node in self.topology.node_list:
+            #     file.write('{}\n'.format(node))
+            #
+            # file.write('\nEvents:\n')
+            # for event in self.eventQueue:
+            #     file.write('{}\n'.format(event))
+            #
+            # file.write('\nResults:\n')
+            # file.write('{}\n'.format(self.simulationResult))
 
-            file.write('\nNodes:\n')
-            for gateway in self.topology.gateway_list:
-                file.write('{}\n'.format(gateway))
-            for node in self.topology.node_list:
-                file.write('{}\n'.format(node))
-
-            file.write('\nEvents:\n')
+            file.write("x,y,src,dst,sf,dur,size,tx_energy,tx_power,status\n")
             for event in self.eventQueue:
-                file.write('{}\n'.format(event))
-
-            file.write('\nResults:\n')
-            file.write('{}\n'.format(self.simulationResult))
+                tx_node = self.topology.get_node(event.source)
+                file.write("{},{},{},{},{},{},{},{},{},{}\n".format(tx_node.location.x, tx_node.location.y,tx_node.id,
+                                                           event.destination, event.sf.name, event.duration, event.size,
+                                                           event.tx_energy_j, event.tx_power_dbm, event.status.name))
 
             # for event in self.eventQueue:
             #     tx_node = self.topology.get_node(event.source)
@@ -159,7 +169,9 @@ class Simulation:
         for tx_node in self.topology.node_list:
             tx_node.txList = []
             sf = self.__get_sf(tx_node)
-            self.__add_to_event_queue(tx_node.schedule_tx(packet_rate=self.packetRate, packet_size=self.packetSize, simulation_duration=self.simulationDuration, sf=sf))
+            self.__add_to_event_queue(tx_node.schedule_tx(packet_rate=self.packetRate, packet_size=self.packetSize,
+                                                          simulation_duration=self.simulationDuration, sf=sf,
+                                                          l_tx_power=self.l_tx_power, h_tx_power=self.h_tx_power))
 
         for event_index, event in enumerate(self.eventQueue):
             tx_node = self.topology.get_node(event.source)
@@ -274,7 +286,9 @@ class Simulation:
 
             # Schedule next event for this node
             sf = self.__get_sf(tx_node)
-            self.__add_to_event_queue(tx_node.schedule_tx(packet_rate=self.packetRate, packet_size=self.packetSize, simulation_duration=self.simulationDuration, sf=sf))
+            self.__add_to_event_queue(tx_node.schedule_tx(packet_rate=self.packetRate, packet_size=self.packetSize,
+                                                          simulation_duration=self.simulationDuration, sf=sf,
+                                                          l_tx_power=self.l_tx_power, h_tx_power=self.h_tx_power))
 
         # Collect statistics
         cumulativeSuccessfulDataSize = 0

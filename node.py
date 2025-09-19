@@ -44,7 +44,7 @@ class Node:
         else:
             return 'n {:>3} {} {:>2} {}'.format(self.id, self.location, self.lowestSf.name, self.trafficType.name)
 
-    def schedule_tx(self, packet_rate, packet_size, simulation_duration, sf):
+    def schedule_tx(self, packet_rate, packet_size, simulation_duration, sf, l_tx_power, h_tx_power):
         # Poisson interval
         if len(self.txList) == 0:
             # initial transmissions are poisson
@@ -59,7 +59,9 @@ class Node:
         if next_time > simulation_duration:
             return None
 
-        new_packet = Packet(time=next_time, sf=sf, source=self.id, size=packet_size)
+        tx_power_dbm = self.__generateTransmissionPowerdBm(l_tx_power, h_tx_power)
+
+        new_packet = Packet(time=next_time, sf=sf, source=self.id, size=packet_size, tx_power_dbm=tx_power_dbm)
         self.txList.append(new_packet)
 
         return new_packet
@@ -69,6 +71,9 @@ class Node:
 
     def __generatePeriodicInterval(self, packet_rate):
         return 1 / packet_rate
+
+    def __generateTransmissionPowerdBm(self, lower_trans_power, higher_trans_power):
+        return random.randint(lower_trans_power, higher_trans_power)
 
 
 class Gateway(Node):

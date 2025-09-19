@@ -38,6 +38,8 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--packetRate', type=float, default=0.01, help='packet rate in packet per second')
     parser.add_argument('-z', '--packetSize', type=int, default=60, help='packet size in byte')
     parser.add_argument('-o', '--nodeTraffic', type=float, nargs=len(TrafficType), default=(1, 0), metavar=' '.join([type.name for type in TrafficType]), help='proportions of different traffic generator type nodes')
+    parser.add_argument('-lp', '--lowerPower', type=int, default=2, help='Lower bound for transmission power in dBm')
+    parser.add_argument('-hp', '--higherPower', type=int, default=20, help='Higher bound for transmission power in dBm')
     parser.add_argument('-e', '--seed', type=int, help='random number generator seed')
     parser.add_argument('-l', '--event', help='events log file path')
     parser.add_argument('-v', '--verbose', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'], default='ERROR', help='verbose level')
@@ -56,6 +58,8 @@ if __name__ == "__main__":
     print('  Packet interval: {} seconds'.format(1/args.packetRate))
     print('  Packet size: {} bytes'.format(args.packetSize))
     print('  Percentage of periodic nodes {}: {}'.format([type.name for type in TrafficType], args.nodeTraffic))
+    print('  Lower bound for transmission power in dBm: {}'.format(args.lowerPower))
+    print('  Higher bound for transmission power in dBm: {}'.format(args.higherPower))
     print('  Random number generator seed: {}'.format(args.seed))
     print('  Events log path: {}'.format(args.event))
     print('  Verbose level: {}'.format(args.verbose))
@@ -86,7 +90,9 @@ if __name__ == "__main__":
         print('Training accuracy is {:.3f} %'.format(accuracy_score(y_test, y_pred) * 100))
         sfPredictor = classifier.predict
 
-    simulation = Simulation(topology=topology, packet_rate=args.packetRate, packet_size=args.packetSize, simulation_duration=args.duration, sf=PacketSf[args.sf], sfPredictor=sfPredictor)
+    simulation = Simulation(topology=topology, packet_rate=args.packetRate, packet_size=args.packetSize,
+                            simulation_duration=args.duration, sf=PacketSf[args.sf], sfPredictor=sfPredictor,
+                            l_tx_power=args.lowerPower, h_tx_power=args.higherPower)
     simulation.run()
     simulation.show_results()
     if args.event:
