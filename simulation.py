@@ -95,16 +95,16 @@ class Simulation:
         print('Results:')
         print('{}'.format(self.simulationResult))
 
-    def get_training_data(self, test_size=0.2):
+    def get_training_data(self, test_size=0.2, random_state=None):
         assert 0 <= test_size <= 1, 'invalid test size {}'.format(test_size)
 
         X = []
         y = []
         for event in self.eventQueue:
             tx_node = self.topology.get_node(event.source)
-            X.append([tx_node.location.x, tx_node.location.y, event.sf.value])
+            X.append([tx_node.location.x, tx_node.location.y, event.sf.value, event.tx_power_dbm])
             y.append(event.status.value)
-        return train_test_split(X, y, test_size=test_size)
+        return train_test_split(X, y, test_size=test_size, random_state=random_state)
 
     def write_to_file(self, file_name):
         with open(file_name, 'w') as file:
@@ -141,7 +141,7 @@ class Simulation:
             #     tx_node = self.topology.get_node(event.source)
             #     file.write('{},{},{},{}\n'.format(tx_node.location.x, tx_node.location.x, event.sf.name, event.status.name))
 
-    def __get_sf(self, tx_node):
+    def __get_sf(self, tx_node, tx_power_dbm):
         if self.sf == PacketSf.SF_Lowest:
             return tx_node.lowestSf
         elif self.sf == PacketSf.SF_Smart:
@@ -152,7 +152,7 @@ class Simulation:
             # else:
             #     return tx_node.lowestSf
             for sf_pred in range(tx_node.lowestSf.value, 12+1):
-                Xnew = [[tx_node.location.x, tx_node.location.y, sf_pred]]
+                Xnew = [[tx_node.location.x, tx_node.location.y, sf_pred, tx_power_dbm]]
                 ynew = self.sfPredictor(Xnew)[0]
                 logging.debug('sf_pred={},tx_node.lowestSf={},ynew={}'.format(sf_pred, tx_node.lowestSf, ynew))
                 if ynew == PacketStatus.transmitted.value:
@@ -168,10 +168,11 @@ class Simulation:
         # Schedule initial node transmissions
         for tx_node in self.topology.node_list:
             tx_node.txList = []
-            sf = self.__get_sf(tx_node)
+            tx_power_dbm = tx_node.generateTransmissionPowerdBm(self.l_tx_power, self.h_tx_power)
+            sf = self.__get_sf(tx_node, tx_power_dbm)
             self.__add_to_event_queue(tx_node.schedule_tx(packet_rate=self.packetRate, packet_size=self.packetSize,
                                                           simulation_duration=self.simulationDuration, sf=sf,
-                                                          l_tx_power=self.l_tx_power, h_tx_power=self.h_tx_power))
+                                                          tx_power_dbm=tx_power_dbm))
 
         for event_index, event in enumerate(self.eventQueue):
             tx_node = self.topology.get_node(event.source)
@@ -285,10 +286,11 @@ class Simulation:
             logging.info('Event simulated {}'.format(event))
 
             # Schedule next event for this node
-            sf = self.__get_sf(tx_node)
+            tx_power_dbm = tx_node.generateTransmissionPowerdBm(self.l_tx_power, self.h_tx_power)
+            sf = self.__get_sf(tx_node, tx_power_dbm)
             self.__add_to_event_queue(tx_node.schedule_tx(packet_rate=self.packetRate, packet_size=self.packetSize,
                                                           simulation_duration=self.simulationDuration, sf=sf,
-                                                          l_tx_power=self.l_tx_power, h_tx_power=self.h_tx_power))
+                                                          tx_power_dbm=tx_power_dbm))
 
         # Collect statistics
         cumulativeSuccessfulDataSize = 0

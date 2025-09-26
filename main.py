@@ -18,6 +18,8 @@
 import random
 import logging
 import argparse
+
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn import svm
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
@@ -33,7 +35,7 @@ if __name__ == "__main__":
     parser.add_argument('-g', '--gateway', type=int, default=1, help='number of gateways')
     parser.add_argument('-n', '--node', type=int, default=100, help='number of nodes')
     parser.add_argument('-s', '--sf', choices=[sf.name for sf in PacketSf], default='SF_Lowest', help='spreading factor assignment method')
-    parser.add_argument('-c', '--classifier', choices=['DTC', 'SVM'], default='DTC', help='smart spreading factor assignment classifier')
+    parser.add_argument('-c', '--classifier', choices=['DTC', 'SVM', 'kNN'], default='DTC', help='smart spreading factor assignment classifier')
     parser.add_argument('-d', '--duration', type=int, default=3600, help='simulation duration in second')
     parser.add_argument('-p', '--packetRate', type=float, default=0.01, help='packet rate in packet per second')
     parser.add_argument('-z', '--packetSize', type=int, default=60, help='packet size in byte')
@@ -73,13 +75,15 @@ if __name__ == "__main__":
     if PacketSf[args.sf] == PacketSf.SF_Smart:
         simulation = Simulation(topology=topology, packet_rate=args.packetRate, packet_size=args.packetSize, simulation_duration=args.duration, sf=PacketSf.SF_Random)
         simulation.run()
-        X_train, X_test, y_train, y_test = simulation.get_training_data(test_size=0.2)
+        X_train, X_test, y_train, y_test = simulation.get_training_data(test_size=0.2, random_state=args.seed)
 
         classifier = None
         if args.classifier == 'DTC':
-            classifier = DecisionTreeClassifier(class_weight='balanced')
+            classifier = DecisionTreeClassifier(class_weight='balanced', random_state=args.seed)
         elif args.classifier == 'SVM':
-            classifier = svm.SVC(class_weight='balanced', gamma='auto')
+            classifier = svm.SVC(class_weight='balanced', gamma='auto', random_state=args.seed)
+        elif args.classifier == 'kNN':
+            classifier = KNeighborsClassifier(weights='distance')
 
         classifier.fit(X_train, y_train)
         y_pred = classifier.predict(X_test)
